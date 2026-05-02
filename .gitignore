@@ -1,0 +1,21 @@
+# Generated files
+data/raw/
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Mac
+.DS_Store
+airflow/**/.DS_Store
+
+# Airflow
+airflow/logs/
+airflow/dags/__pycache__/
+
+# Environment
+.env
