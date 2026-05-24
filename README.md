@@ -36,7 +36,7 @@ analytics engineering stack on a single coherent dataset.
 
 | Repo | Stack | Role | Status |
 | --- | --- | --- | --- |
-| [`cba-banking-pipeline`](https://github.com/vivianasoyoung/cba-banking-pipeline) | Airflow, Postgres, Docker | Foundation: data generation + ingestion + dbt orchestration | **You are here** *(adjust per repo)* |
+| [`cba-banking-pipeline`](https://github.com/vivianasoyoung/cba-banking-pipeline) | Airflow, Postgres, Docker | Foundation: data generation + ingestion + dbt orchestration | **You are here**  |
 | [`cba-dbt-analytics`](https://github.com/vivianasoyoung/cba-dbt-analytics) | dbt-postgres, dbt_utils | Staging → intermediate → marts; segmentation + trends | |
 | [`cba-fraud-streaming`](https://github.com/vivianasoyoung/cba-fraud-streaming) | Kafka, Python, Postgres | Real-time rule-based fraud detection | |
 | [`cba-feature-store`](https://github.com/vivianasoyoung/cba-feature-store) | Feast, MLflow, FastAPI | ML feature store + model serving; labels sourced from streaming | |
