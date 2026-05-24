@@ -1,153 +1,64 @@
-# CBA Transaction Pipeline
+# CBA Banking Data Platform — Project Overview
 
-An end-to-end batch data pipeline simulating a banking transaction ingestion and analytics system, modelled on Commonwealth Bank of Australia's transaction data structures.
+Paste this section near the top of each repo's README, adjusting the
+"You are here" line to match.
 
-## Architecture
+---
 
-```
-Synthetic Data Generator
-        │
-        ▼
-   Raw CSV Files
-        │
-        ▼
-  Apache Airflow DAG (daily @ 6am)
-   ├── Source file validation
-   ├── Data quality checks
-   ├── Load raw.accounts (upsert)
-   ├── Load raw.transactions (incremental)
-   └── Pipeline audit logging
-        │
-        ▼
-   PostgreSQL (raw schema)
-        │
-        ▼
-   dbt transformations
-   ├── staging.stg_transactions (cleaned view)
-   └── marts.mart_daily_category_spend (analytics table)
-```
-![Lineage Graph](docs/lineage.png)
+## How this fits with the rest of the project
 
-## Tech Stack
-
-| Layer | Tool |
-|---|---|
-| Orchestration | Apache Airflow 2.8 |
-| Storage | PostgreSQL 15 |
-| Transformation | dbt-postgres |
-| Containerisation | Docker + Docker Compose |
-| Data Generation | Python (Faker, pandas) |
-
-## Quick Start
-
-### Prerequisites
-- Docker Desktop
-- Python 3.10+
-
-### 1. Clone and generate data
-
-```bash
-git clone https://github.com/yourusername/cba-transaction-pipeline
-cd cba-transaction-pipeline
-
-pip install faker pandas
-python scripts/generate_transactions.py --months 6 --accounts 500
-```
-
-This generates:
-- `data/raw/accounts.csv` — 500 synthetic accounts with Australian BSBs
-- `data/raw/transactions.csv` — ~200k transactions across 6 months
-
-### 2. Start the stack
-
-```bash
-docker-compose up -d
-```
-
-Services:
-| Service | URL | Credentials |
-|---|---|---|
-| Airflow | http://localhost:8080 | admin / admin |
-| pgAdmin | http://localhost:5050 | admin@admin.com / admin |
-
-### 3. Trigger the pipeline
-
-In Airflow UI:
-1. Enable the `cba_transaction_pipeline` DAG
-2. Trigger a manual run
-3. Watch tasks execute: file check → quality → accounts → transactions → audit log
-
-### 4. Run dbt models
-
-```bash
-cd dbt
-dbt run
-dbt test
-dbt docs generate && dbt docs serve
-```
-
-## Data Model
-
-### Raw Layer (`raw` schema)
-| Table | Description |
-|---|---|
-| `raw.transactions` | All ingested transactions (incremental) |
-| `raw.accounts` | Account master data (upsert) |
-| `raw.pipeline_runs` | Audit log of every DAG run |
-
-### Staging Layer (`staging` schema)
-| Model | Description |
-|---|---|
-| `stg_transactions` | Cleaned, typed, standardised transactions |
-
-### Marts Layer (`marts` schema)
-| Model | Description |
-|---|---|
-| `mart_daily_category_spend` | Daily spend by merchant category with rankings and cumulative totals |
-
-## Data Quality Checks
-
-The pipeline validates:
-- No null values in critical fields (transaction_id, account_id, amount)
-- No duplicate transaction IDs
-- No negative amounts
-- Valid transaction types (DEBIT / CREDIT only)
-- No future-dated transactions
-
-## Australian Banking Context
-
-- BSB numbers follow real state-based Australian formats
-- Merchant categories reflect Australian spending patterns (Woolworths, Coles, Opal Card, BPAY etc.)
-- Account types: SAVINGS, TRANSACTION, OFFSET
-- Channels: EFTPOS, ATM, ONLINE, BPAY
-
-## Project Structure
+This repo is one of four that together make up an end-to-end banking data
+platform. Built as a portfolio piece demonstrating the modern data /
+analytics engineering stack on a single coherent dataset.
 
 ```
-cba-transaction-pipeline/
-├── airflow/
-│   └── dags/
-│       └── transaction_pipeline_dag.py
-├── dbt/
-│   ├── models/
-│   │   ├── staging/
-│   │   │   └── stg_transactions.sql
-│   │   └── marts/
-│   │       └── mart_daily_category_spend.sql
-│   └── dbt_project.yml
-├── docker/
-│   └── init.sql
-├── scripts/
-│   └── generate_transactions.py
-├── data/
-│   └── raw/           # generated — gitignored
-├── docker-compose.yml
-└── README.md
+        ┌───────────────────────────┐
+        │  cba-banking-pipeline     │  Airflow + Postgres
+        │  → ingests raw txns       │  Source of truth
+        └────────────┬──────────────┘
+                     │ raw.transactions, raw.accounts
+        ┌────────────┴───────────────────────────────┐
+        ▼                                            ▼
+┌──────────────────────┐                  ┌─────────────────────────┐
+│ cba-dbt-analytics    │                  │ cba-fraud-streaming     │
+│ → staging / int /    │                  │ → Kafka + rule-based    │
+│   marts (dbt)        │                  │   real-time fraud       │
+│ → BI / analytics     │                  │ → fraud.flagged_txns    │
+└──────────────────────┘                  └────────────┬────────────┘
+                                                       │ LABELS
+                                                       ▼
+                                          ┌─────────────────────────┐
+                                          │ cba-feature-store       │
+                                          │ → Feast + MLflow        │
+                                          │ → /score (FastAPI)      │
+                                          └─────────────────────────┘
 ```
 
-## Next Steps
+| Repo | Stack | Role | Status |
+| --- | --- | --- | --- |
+| [`cba-banking-pipeline`](https://github.com/vivianasoyoung/cba-banking-pipeline) | Airflow, Postgres, Docker | Foundation: data generation + ingestion + dbt orchestration | **You are here** *(adjust per repo)* |
+| [`cba-dbt-analytics`](https://github.com/vivianasoyoung/cba-dbt-analytics) | dbt-postgres, dbt_utils | Staging → intermediate → marts; segmentation + trends | |
+| [`cba-fraud-streaming`](https://github.com/vivianasoyoung/cba-fraud-streaming) | Kafka, Python, Postgres | Real-time rule-based fraud detection | |
+| [`cba-feature-store`](https://github.com/vivianasoyoung/cba-feature-store) | Feast, MLflow, FastAPI | ML feature store + model serving; labels sourced from streaming | |
 
-- [ ] Add Great Expectations data quality suite
-- [ ] Add `mart_account_monthly_summary` model
-- [ ] Add fraud signal detection mart
-- [ ] Connect to Metabase or Streamlit for dashboarding
+### Boundaries
+
+- **Pipeline ↔ dbt:** ingestion writes to `cba_pipeline.raw.*`; dbt reads
+  those as sources. Single owner of transformations is `cba-dbt-analytics`.
+- **Pipeline ↔ Streaming:** independent — streaming uses its own synthetic
+  generator, not the pipeline's CSV. Done deliberately to demonstrate two
+  different ingestion styles (batch vs. event).
+- **Streaming → Feature Store:** the streaming engine's `fraud.flagged_transactions`
+  table is exported and used as ML **labels** in the feature store repo.
+  This decouples feature definition from label definition.
+
+### Running the whole thing locally
+
+Each repo is independently runnable via `docker compose up`. To wire them
+together end-to-end:
+
+1. `cba-banking-pipeline`: generate data, boot Airflow, let the DAG run once.
+2. `cba-dbt-analytics`: `dbt build` against the same Postgres.
+3. `cba-fraud-streaming`: `docker compose up` → producer + consumer run.
+4. `cba-feature-store`: export flagged txns from the streaming Postgres,
+   then `compute_features.py → train_model.py → uvicorn`.
