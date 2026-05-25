@@ -52,7 +52,7 @@ models:
       - name: account_type
         tests:
           - accepted_values:
-              values: ['SAVINGS', 'EVERYDAY', 'CREDIT', 'OFFSET']
+              values: ['SAVINGS', 'TRANSACTION', 'OFFSET']
       - name: open_date
         tests:
           - not_null

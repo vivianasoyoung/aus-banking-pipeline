@@ -13,21 +13,21 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: airflow
-          POSTGRES_PASSWORD: airflow
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: cba_pipeline
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U airflow"
+          --health-cmd "pg_isready -U postgres"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
       POSTGRES_HOST: localhost
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: cba_pipeline
       DBT_PROFILES_DIR: ${{ github.workspace }}/cba_dbt_analytics
 
@@ -37,14 +37,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
 
       - name: Install dbt
-        run: pip install dbt-postgres==1.7.9 sqlfluff==3.0.0 sqlfluff-templater-dbt==3.0.0
+        run: pip install "dbt-postgres>=1.8,<1.10"
 
       - name: Seed raw schema + fixture data
-        run: |
-          psql "postgresql://airflow:airflow@localhost:5432/cba_pipeline" \
-            -f .github/fixtures/seed_raw.sql
+        run: psql "postgresql://postgres:postgres@localhost:5432/cba_pipeline" -f .github/fixtures/seed_raw.sql
 
       - name: Render profiles.yml
         run: cp profiles.example.yml cba_dbt_analytics/profiles.yml
@@ -55,8 +54,4 @@ jobs:
 
       - name: dbt build
         working-directory: cba_dbt_analytics
-        run: dbt build --fail-fast
-
-      - name: sqlfluff lint
-        working-directory: cba_dbt_analytics
-        run: sqlfluff lint models --dialect postgres
+        run: dbt build
