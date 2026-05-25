@@ -178,7 +178,6 @@ def generate_transactions(accounts: list[dict], months: int) -> list[dict]:
             profile = MERCHANT_PROFILES[category]
             merchant = random.choice(profile["merchants"])
             channel = random.choice(profile["channels"])
-            state = account["bsb"][:3]
 
             # Generate realistic amount — clamp to avoid negatives
             raw_amount = abs(
