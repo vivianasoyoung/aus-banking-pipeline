@@ -96,25 +96,19 @@ def test_event_timestamp_is_per_account_not_now(fixture_dir: Path):
 
 def test_label_is_not_a_pure_function_of_features(fixture_dir: Path):
     """
-    Regression guard for target leakage. If the label is a deterministic
-    function of the feature columns, you can perfectly predict it with
-    a single decision tree. This test asserts you cannot.
+    Regression guard for target leakage. If the label were a deterministic
+    function of the feature columns, a model could trivially recover it.
+    This test asserts no single feature, thresholded at its max, equals the
+    label — the simplest form of leakage that produced the original AUC=1.00.
     """
-    from sklearn.tree import DecisionTreeClassifier
-
     out = fixture_dir / "out.parquet"
     df = compute_account_features(
         str(fixture_dir / "txns.csv"),
         str(fixture_dir / "flagged.csv"),
         str(out),
     )
-    clf = DecisionTreeClassifier(max_depth=10, random_state=0).fit(
-        df[FEATURE_COLS], df["is_fraud_account"]
-    )
-    train_acc = clf.score(df[FEATURE_COLS], df["is_fraud_account"])
-    # Real signal: the tree CAN fit because there are real patterns,
-    # but with only 3 rows in this fixture we just assert the label is
-    # not identical to any single feature thresholded.
+    # Assert the label is not identical to any single feature thresholded at
+    # its max. If it were, the model could trivially recover it (leakage).
     for col in FEATURE_COLS:
         identical = (df["is_fraud_account"] == (df[col] == df[col].max())).all()
         assert not identical, f"Label is identical to {col} threshold — leakage!"

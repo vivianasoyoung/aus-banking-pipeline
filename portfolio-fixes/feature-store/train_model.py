@@ -12,7 +12,6 @@ Logs experiment to MLflow and registers the model under `cba_fraud_model`.
 """
 
 import argparse
-import os
 
 import mlflow
 import mlflow.sklearn
