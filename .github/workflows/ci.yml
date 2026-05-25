@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install lint tools
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check airflow/ scripts/
+
+      # Syntax check without installing the full Airflow runtime. Catches
+      # syntax errors (e.g. a malformed module docstring) in the DAG and the
+      # data generator. A full DagBag integrity test would require installing
+      # apache-airflow + providers, which is heavy; this covers the common case.
+      - name: Syntax check
+        run: |
+          python -m py_compile airflow/dags/transaction_pipeline_dag.py
+          python -m py_compile scripts/generate_transactions.py
