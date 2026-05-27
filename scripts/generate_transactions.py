@@ -2,7 +2,7 @@
 generate_transactions.py
 ------------------------
 Generates realistic Australian banking transaction data
-modelled on CBA-style account and transaction structures.
+modelled on Australian retail banking account and transaction structures.
 
 Usage:
     python scripts/generate_transactions.py --months 6 --accounts 500
@@ -91,7 +91,7 @@ MERCHANT_PROFILES = {
         "channels": ["EFTPOS", "ONLINE"],
     },
     "ATM Withdrawal": {
-        "merchants": ["CBA ATM", "Westpac ATM", "NAB ATM", "ANZ ATM"],
+        "merchants": ["Major Bank ATM", "Westpac ATM", "NAB ATM", "ANZ ATM"],
         "avg_amount": 200,
         "std_dev": 100,
         "frequency": 0.06,
@@ -235,7 +235,7 @@ def write_csv(data: list[dict], filepath: str):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate synthetic CBA-style banking data")
+    parser = argparse.ArgumentParser(description="Generate synthetic Australian retail banking data")
     parser.add_argument("--months",   type=int, default=6,   help="Months of history to generate")
     parser.add_argument("--accounts", type=int, default=500,  help="Number of accounts")
     parser.add_argument("--out",      type=str, default="data/raw", help="Output directory")
