@@ -10,10 +10,13 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    AIRFLOW__LOGGING__REMOTE_LOGGING: 'false'
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
     _PIP_ADDITIONAL_REQUIREMENTS: 'faker psycopg2-binary pandas dbt-postgres'
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
+    - ./airflow/logs:/opt/airflow/logs 
     - ./data:/opt/airflow/data
     - ./scripts:/opt/airflow/scripts
     - ./dbt:/opt/airflow/dbt
