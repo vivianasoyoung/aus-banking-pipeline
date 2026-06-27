@@ -11,7 +11,7 @@ This is one of four repos that together form an end-to-end banking data platform
 | Repo | Stack | Role |
 | --- | --- | --- |
 | **[`aus-banking-pipeline`](https://github.com/vivianasoyoung/aus-banking-pipeline)** *(You are here)* | Airflow, Postgres, Docker | Foundation: synthetic data generation + batch ingestion |
-| [`aus-dbt-analytics`](https://github.com/vivianasoyoung/aus-dbt-analytics) | dbt-postgres, dbt_utils | Staging → intermediate → marts transformations |
+| [`aus-dbt-analytics`](https://github.com/vivianasoyoung/aus-dbt-analytics) | dbt-postgres, dbt_utils | Staging → intermediate → marts transformations (also runnable against AWS RDS) |
 | [`aus-fraud-streaming`](https://github.com/vivianasoyoung/aus-fraud-streaming) | Kafka, Python, Postgres | Real-time rule-based fraud detection |
 | [`aus-feature-store`](https://github.com/vivianasoyoung/aus-feature-store) | Feast, MLflow, FastAPI | ML feature store + model serving |
 
@@ -30,10 +30,11 @@ Synthetic Data Generator
         ▼
   Apache Airflow DAG (daily @ 6am)
    ├── Source file validation
-   ├── Data quality checks (NULLs, dupes, invalid types, future dates)
-   ├── Load raw.accounts (upsert)
-   ├── Load raw.transactions (incremental via high-water mark)
-   └── Pipeline audit logging
+   ├── Row-level validation + split
+   │      ├── Good rows ──► raw.transactions       (idempotent load)
+   │      └── Bad rows  ──► raw.transactions_quarantine  (with failure_reasons)
+   ├── Load raw.accounts                          (upsert)
+   └── Pipeline audit log                          (SUCCESS / SUCCESS_WITH_QUARANTINE / FAILED)
         │
         ▼
    PostgreSQL (raw schema)
@@ -64,13 +65,14 @@ pip install faker pandas
 python scripts/generate_transactions.py --months 6 --accounts 500
 ```
 
-Generates ~200,000 synthetic transactions across 500 accounts over six months, using Australian Bank State Branch (BSB) code formats.
+Generates ~95,000 synthetic transactions across 500 accounts over six months, using Australian Bank State Branch (BSB) code formats.
 
 ### 2. Configure environment
 
 ```bash
 cp .env.example .env
-# Edit .env and set POSTGRES_PASSWORD
+# Edit .env and fill in POSTGRES_PASSWORD, AIRFLOW_SECRET_KEY, AIRFLOW_FERNET_KEY
+# Generation commands are in the comments inside .env.example
 ```
 
 ### 3. Start the stack
@@ -86,19 +88,39 @@ docker-compose up -d
 
 ### 4. Trigger the pipeline
 
-In the Airflow UI: configure the Postgres Airflow Connection (host `postgres`, schema `raw`, credentials from `.env`), enable the `transaction_pipeline` DAG, and trigger a run.
+The Postgres connection (`cba_postgres`) is provisioned automatically via the
+`AIRFLOW_CONN_CBA_POSTGRES` environment variable. In the Airflow UI just
+unpause the `cba_transaction_pipeline` DAG and trigger a run.
 
 ## Data Model
 
 | Table | Description |
 |---|---|
-| `raw.transactions` | Ingested transactions (incremental, idempotent via `ON CONFLICT DO NOTHING`) |
+| `raw.transactions` | Validated transactions (incremental, idempotent via `ON CONFLICT DO NOTHING`) |
+| `raw.transactions_quarantine` | Rejected rows with a `failure_reasons` array — kept for audit and replay |
 | `raw.accounts` | Account master data (upsert) |
-| `raw.pipeline_runs` | Audit log of every DAG run, including any data-quality issues found |
+| `raw.pipeline_runs` | Audit log of every DAG run: status, rows loaded, rows quarantined, duration |
 
-## Data Quality Checks
+## Data Quality: partial-load with quarantine
 
-Each ingestion batch is validated for: NULLs in critical columns, duplicate `transaction_id`s, negative amounts, invalid `transaction_type` values (`DEBIT`/`CREDIT`), and future-dated transactions. Issues are logged to `raw.pipeline_runs` and the run is marked `SUCCESS_WITH_WARNINGS`.
+Rather than failing the whole batch on a single bad row (which would block hours
+of downstream work for one corrupt record), this pipeline **validates each row
+and routes failures to a quarantine table** so good rows always load.
+
+Each row is checked for:
+
+- **Schema validation** — required fields present, parseable dates, valid types
+- **Business rules** — amount within `[0, 1,000,000]`, transaction date within
+  the last 5 years, valid `transaction_type` (`DEBIT` / `CREDIT`)
+- **Referential integrity** — `account_id` exists in `raw.accounts`
+
+Bad rows are inserted into `raw.transactions_quarantine` with a
+`failure_reasons` array describing every check they failed. The audit row in
+`raw.pipeline_runs` records the split with status `SUCCESS_WITH_QUARANTINE`,
+or `SUCCESS` if every row passed, or `FAILED` if the load itself errored.
+
+This pattern reflects production tradeoffs in real DE work: **fail-fast loses
+data; partial-load with quarantine preserves it and surfaces the problem**.
 
 ## Australian Banking Context
 
