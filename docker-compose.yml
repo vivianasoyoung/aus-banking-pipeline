@@ -1,25 +1,23 @@
-version: '3.8'
-
 x-airflow-common: &airflow-common
   image: apache/airflow:2.8.1
   environment:
     AIRFLOW__CORE__EXECUTOR: LocalExecutor
-    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-    AIRFLOW__WEBSERVER__SECRET_KEY: 'a3f8c2e1d9b7f4a6c8e2d1b9f7a3c5e8d2b4f6a8c1e3d5b7f9a2c4e6d8b1f3'
-    AIRFLOW__CORE__FERNET_KEY: 'e7UxyGBST7kbW_55hdLUoT8DBIcZACvCQi3C12imUE4='
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}@postgres/airflow
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:?AIRFLOW_SECRET_KEY not set}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:?AIRFLOW_FERNET_KEY not set}
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     AIRFLOW__LOGGING__REMOTE_LOGGING: 'false'
-    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'
-    _PIP_ADDITIONAL_REQUIREMENTS: 'faker psycopg2-binary pandas dbt-postgres'
+    AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'false'
+    AIRFLOW_CONN_CBA_POSTGRES: postgresql://airflow:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}@postgres:5432/cba_pipeline
+    _PIP_ADDITIONAL_REQUIREMENTS: 'faker psycopg2-binary pandas'
   volumes:
     - ./airflow/dags:/opt/airflow/dags
     - ./airflow/plugins:/opt/airflow/plugins
-    - ./airflow/logs:/opt/airflow/logs 
+    - ./airflow/logs:/opt/airflow/logs
     - ./data:/opt/airflow/data
     - ./scripts:/opt/airflow/scripts
-    - ./dbt:/opt/airflow/dbt
   depends_on:
     postgres:
       condition: service_healthy
@@ -29,7 +27,7 @@ services:
     image: postgres:15
     environment:
       POSTGRES_USER: airflow
-      POSTGRES_PASSWORD: airflow
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}
       POSTGRES_DB: airflow
     ports:
       - "5432:5432"
@@ -73,6 +71,7 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    restart: unless-stopped
 
 volumes:
   postgres_data:
