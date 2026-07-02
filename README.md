@@ -122,6 +122,25 @@ or `SUCCESS` if every row passed, or `FAILED` if the load itself errored.
 This pattern reflects production tradeoffs in real DE work: **fail-fast loses
 data; partial-load with quarantine preserves it and surfaces the problem**.
 
+## Performance: measured, not assumed
+
+The default Quick Start demo is ~95K rows, where load strategy barely
+matters. To find out whether it would matter at real scale, `load_transactions()`
+was benchmarked against a synthetic 2,312,145-row dataset comparing the
+original `execute_values(page_size=500)` approach against a `COPY`-based
+bulk load:
+
+| Method | Time | Rows/sec |
+|---|---|---|
+| `execute_values(page_size=500)` (original) | 114.06s | 20,271 |
+| `COPY` via temp table (current) | 35.03s | 66,010 |
+
+**3.3x speedup.** `load_transactions()` now uses the COPY-based approach —
+`COPY` can't express an upsert directly, so it loads into a temp table first,
+then does `INSERT ... SELECT ... ON CONFLICT DO NOTHING` from there to
+preserve idempotency. Full methodology, caveats, and the reproducible
+benchmark script: [`docs/perf-benchmark.md`](docs/perf-benchmark.md).
+
 ## Australian Banking Context
 
 - BSB numbers follow regional Australian formatting conventions
@@ -136,6 +155,8 @@ aus-banking-pipeline/
 ├── airflow/dags/transaction_pipeline_dag.py
 ├── docker/init.sql
 ├── scripts/generate_transactions.py
+├── scripts/benchmark_load.py
+├── docs/perf-benchmark.md
 ├── data/raw/                    # gitignored — regenerated locally
 ├── docker-compose.yml
 ├── .env.example
