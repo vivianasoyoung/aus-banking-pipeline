@@ -16,7 +16,7 @@ for investigation while good rows continue to land downstream.
 
 Downstream transformations live in the aus-dbt-analytics repo and are
 scheduled independently. Credentials come from the Airflow Connection
-`cba_postgres` — no secrets in code.
+`aus_postgres` — no secrets in code.
 """
 
 from datetime import datetime, timedelta
@@ -31,7 +31,7 @@ from psycopg2.extras import execute_values
 
 log = logging.getLogger(__name__)
 
-POSTGRES_CONN_ID       = "cba_postgres"
+POSTGRES_CONN_ID       = "aus_postgres"
 RAW_TRANSACTIONS_PATH  = "/opt/airflow/data/raw/transactions.csv"
 RAW_ACCOUNTS_PATH      = "/opt/airflow/data/raw/accounts.csv"
 GOOD_TRANSACTIONS_PATH = "/tmp/good_transactions.csv"
@@ -321,7 +321,7 @@ def log_pipeline_run(**context):
 
 
 with DAG(
-    dag_id="cba_transaction_pipeline",
+    dag_id="aus_transaction_pipeline",
     description="Daily ingestion of Australian retail banking transactions with partial-load quarantine",
     schedule="0 6 * * *",
     start_date=datetime(2024, 1, 1),

@@ -91,7 +91,7 @@ MERCHANT_PROFILES = {
         "channels": ["EFTPOS", "ONLINE"],
     },
     "ATM Withdrawal": {
-        "merchants": ["CBA ATM", "Westpac ATM", "NAB ATM", "ANZ ATM"],
+        "merchants": ["Big 4 ATM", "Westpac ATM", "NAB ATM", "ANZ ATM"],
         "avg_amount": 200,
         "std_dev": 100,
         "frequency": 0.06,

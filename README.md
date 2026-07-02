@@ -88,9 +88,9 @@ docker-compose up -d
 
 ### 4. Trigger the pipeline
 
-The Postgres connection (`cba_postgres`) is provisioned automatically via the
-`AIRFLOW_CONN_CBA_POSTGRES` environment variable. In the Airflow UI just
-unpause the `cba_transaction_pipeline` DAG and trigger a run.
+The Postgres connection (`aus_postgres`) is provisioned automatically via the
+`AIRFLOW_CONN_AUS_POSTGRES` environment variable. In the Airflow UI just
+unpause the `aus_transaction_pipeline` DAG and trigger a run.
 
 ## Data Model
 

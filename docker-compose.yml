@@ -10,7 +10,7 @@ x-airflow-common: &airflow-common
     AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
     AIRFLOW__LOGGING__REMOTE_LOGGING: 'false'
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'false'
-    AIRFLOW_CONN_CBA_POSTGRES: postgresql://airflow:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}@postgres:5432/cba_pipeline
+    AIRFLOW_CONN_AUS_POSTGRES: postgresql://airflow:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD not set}@postgres:5432/aus_pipeline
     _PIP_ADDITIONAL_REQUIREMENTS: 'faker psycopg2-binary pandas'
   volumes:
     - ./airflow/dags:/opt/airflow/dags
