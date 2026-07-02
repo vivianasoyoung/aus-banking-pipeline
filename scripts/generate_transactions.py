@@ -122,24 +122,19 @@ MERCHANT_PROFILES = {
 }
 
 AU_STATES = ["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"]
-AU_BSBS = {
-    "NSW": ["062-000", "062-100", "062-200", "033-000", "032-000"],
-    "VIC": ["063-000", "063-100", "013-000", "083-000"],
-    "QLD": ["064-000", "064-100", "014-000", "124-000"],
-    "WA":  ["066-000", "016-000", "036-000"],
-    "SA":  ["065-000", "015-000", "105-000"],
-    "TAS": ["067-000", "017-000"],
-    "ACT": ["062-900", "032-900"],
-    "NT":  ["065-900"],
-}
 ACCOUNT_TYPES = ["SAVINGS", "TRANSACTION", "OFFSET"]
+
+
+def random_bsb() -> str:
+    """Random 6-digit BSB in the standard XXX-XXX format — not tied to any real bank's prefix."""
+    return f"{random.randint(0, 999):03d}-{random.randint(0, 999):03d}"
 
 
 def generate_accounts(n: int) -> list[dict]:
     accounts = []
     for _ in range(n):
         state = random.choice(AU_STATES)
-        bsb = random.choice(AU_BSBS[state])
+        bsb = random_bsb()
         acc_type = random.choices(
             ACCOUNT_TYPES, weights=[0.4, 0.5, 0.1]
         )[0]
