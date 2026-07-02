@@ -133,7 +133,6 @@ def random_bsb() -> str:
 def generate_accounts(n: int) -> list[dict]:
     accounts = []
     for _ in range(n):
-        state = random.choice(AU_STATES)
         bsb = random_bsb()
         acc_type = random.choices(
             ACCOUNT_TYPES, weights=[0.4, 0.5, 0.1]
